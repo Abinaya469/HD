@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI-Powered Leaf Disease Detector</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-image: url('https://images.unsplash.com/photo-1611079832461-2f3645d4f6d0?auto=format&fit=crop&w=1740&q=80');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            color: #fff;
+        }
+
+        .container {
+            background-color: rgba(0, 0, 0, 0.6);
+            margin: 5% auto;
+            padding: 30px;
+            max-width: 700px;
+            border-radius: 15px;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        input[type="file"] {
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 6px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        #preview {
+            margin-top: 20px;
+            max-width: 300px;
+            display: none;
+            border: 5px solid #fff;
+            border-radius: 12px;
+        }
+
+        .result {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 10px;
+            display: inline-block;
+        }
+
+        .healthy {
+            background-color: rgba(0, 128, 0, 0.7);
+        }
+
+        .diseased {
+            background-color: rgba(255, 0, 0, 0.7);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🌿 AI-Powered Leaf Disease Detector 🌿</h1>
+        <p>Select a leaf image to determine if it's Healthy or Diseased</p>
+        <input type="file" accept="image/*" onchange="handleImage(event)">
+        <br>
+        <img id="preview" />
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        const URL = "./my_model/"; // Replace with your model path or hosted URL
+
+        let model, maxPredictions;
+
+        async function loadModel() {
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+        }
+
+        async function handleImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const img = document.getElementById("preview");
+            img.src = URL.createObjectURL(file);
+            img.onload = async () => {
+                img.style.display = "block";
+                await predict(img);
+            };
+
+            await loadModel();
+        }
+
+        async function predict(imageElement) {
+            const prediction = await model.predict(imageElement);
+            const resultDiv = document.getElementById("result");
+            resultDiv.style.display = "block";
+
+            let best = prediction[0];
+            for (let p of prediction) {
+                if (p.probability > best.probability) {
+                    best = p;
+                }
+            }
+
+            if (best.className.toLowerCase() === "healthy") {
+                resultDiv.className = "result healthy";
+                resultDiv.innerHTML = `✅ Healthy Leaf<br>Confidence: ${(best.probability * 100).toFixed(2)}%`;
+            } else {
+                resultDiv.className = "result diseased";
+                resultDiv.innerHTML = `⚠️ Diseased Leaf<br>Confidence: ${(best.probability * 100).toFixed(2)}%`;
+            }
+        }
+    </script>
+
+</body>
+</html>
